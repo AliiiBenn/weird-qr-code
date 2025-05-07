@@ -70,7 +70,8 @@ L'objectif de cette phase est de définir précisément toutes les règles et co
   - **Entrelacement (Interleaving) :** Les symboles de données (représentant les couleurs/groupes de bits) et les symboles d'ECC seront entrelacés.
 
 ### 1.8. Chemin de Lecture/Écriture des Données
-  - Définir un parcours standardisé pour lire/écrire les symboles de couleur dans les hexagones.
+  - Définir un parcours standardisé pour lire/écrire les symboles de couleur dans les hexagones de la zone de données.
+  - **Approche Suggérée :** Un parcours en serpentin (boustrophédon) adapté à la grille hexagonale (ex: itération sur une coordonnée axiale, puis sur l'autre en inversant la direction à chaque changement de la première coordonnée). Ce choix doit être clairement documenté et implémenté de manière identique par l'encodeur et le décodeur.
 
 ### 1.9. Capacité de Données
   - Calculer la capacité théorique (en bits) pour chaque taille de matrice et niveau d'ECC, en tenant compte du nombre de bits par cellule couleur.
@@ -130,6 +131,16 @@ L'objectif de cette phase est de définir précisément toutes les règles et co
   - **Gestion de Version :** Git.
   - **IDE :** VS Code, PyCharm, etc.
   - **Tests :** PyTest ou `unittest`.
+  - **Gestion des Dépendances :** Utilisation d'un fichier `requirements.txt` (pour Python) pour lister les bibliothèques et leurs versions, assurant la reproductibilité de l'environnement.
+
+### 3.4. Structure des Programmes (Classes)
+  - **Objectif :** Fournir des interfaces claires et modulaires pour l'encodage et le décodage.
+  - **Classe Encodeur (ex: `HexagonalEncoder`) :**
+    - `__init__(self, version: str, ecc_level: str, ...)`: Initialisation avec les paramètres du protocole (taille, niveau d'ECC).
+    - `encode(self, text_message: str) -> ImageObject`: Prend le message texte et retourne un objet image (ex: Pillow Image). Orchestre la création de l'image (préparation des données, ECC, dessin des éléments structurels et des données).
+  - **Classe Décodeur (ex: `HexagonalDecoder`) :**
+    - `__init__(self, ...)`: Configuration minimale.
+    - `decode(self, image_input: Union[str, Path, ImageObject]) -> str`: Prend une image (chemin, objet Path, ou objet image) et retourne le message texte décodé. Orchestre la lecture de l'image (localisation des repères, correction géométrique, calibration des couleurs, lecture des métadonnées et des données, correction d'erreurs). Gère les exceptions en cas d'échec du décodage.
 
 ## Phase 4: Développement du Programme d'Encodage
  (Les modules devront gérer l'assignation des couleurs)
@@ -137,6 +148,7 @@ L'objectif de cette phase est de définir précisément toutes les règles et co
 ### 4.1. Module de Gestion de la Grille Hexagonale
   - Fonctions pour calculer les positions des centres des hexagones.
   - Gestion des coordonnées hexagonales.
+  - **Orientation des Hexagones :** Le protocole utilisera une orientation "flat-top" pour les hexagones (côtés plats en haut et en bas).
 
 ### 4.2. Module de Génération des Éléments de Structure
   - Dessin des repères d'alignement (en couleur).
@@ -186,9 +198,30 @@ L'objectif de cette phase est de définir précisément toutes les règles et co
 
 ### 6.1. Tests Unitaires et d'Intégration
   - Idem.
+  - **Métriques :** Définir des métriques de succès claires pour chaque test (ex: taux de décodage correct).
 
 ### 6.2. Tests de Robustesse
-  - Inclure des tests spécifiques à la dégradation des couleurs (variations d'éclairage lors du scan/photo, impression sur différents papiers/imprimantes).
+  - **Objectif Général :** Évaluer la performance du protocole face à des dégradations courantes, allant au-delà des simples rotations de 90/180/270 degrés.
+  - **A. Distorsions Géométriques :**
+    - **Rotations Fines :** Angles intermédiaires (ex: 1, 3, 5, 10, 15, 30, 45 degrés) en plus de 0, 90, 180, 270.
+    - **Mise à l'échelle (Zoom) :** Différents facteurs de zoom (ex: 50%, 80%, 120%, 150%, 200%).
+    - **Distorsion de Perspective (Skew/Shear) :** Simulation de prises de vue non orthogonales.
+    - **Déformations Locales (Warping) :** Simulation de supports non plats (papier courbé).
+    - **Translations Partielles :** Code non parfaitement centré dans l'image.
+  - **B. Altérations Optiques et de Couleur :**
+    - **Variations d'Éclairage :** Surexposition, sous-exposition, éclairage non uniforme (ombres), différentes températures de couleur.
+    - **Flou :** Flou de mise au point, flou de mouvement.
+    - **Bruit :** Bruit de capteur numérique, artefacts de compression (ex: JPEG).
+    - **Variations de Couleur Spécifiques :** Tests avec des couleurs d'impression légèrement déviées (pour éprouver les patchs de calibration), simulation du vieillissement des couleurs.
+    - **Contraste :** Scénarios à faible contraste entre cellules et entre le code et l'arrière-plan.
+  - **C. Occlusion et Interférences :**
+    - **Occlusion Partielle :** Masquage d'une petite portion du code (pour tester l'ECC).
+    - **Arrière-plans Complexes :** Arrière-plans avec des motifs ou des couleurs perturbateurs.
+  - **D. Tests Spécifiques au Protocole :**
+    - **Messages de Différentes Longueurs :** Messages très courts, messages à capacité maximale.
+    - **Différents Niveaux d'ECC :** Validation de l'efficacité de chaque niveau.
+    - **Cas Limites des Métadonnées :** Robustesse de la lecture et interprétation des métadonnées.
+  - Inclure des tests spécifiques à la dégradation des couleurs (variations d'éclairage lors du scan/photo, impression sur différents papiers/imprimantes). (Note: cette ligne existait déjà, elle est complémentaire).
 
 ### 6.3. Itérations et Optimisations
   - Affiner les algorithmes de classification des couleurs.
